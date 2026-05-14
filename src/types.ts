@@ -35,6 +35,7 @@ export interface Equipment {
   repairHistory: string;
   bookNumber: string;
   pageNumber: string;
+  deleted?: boolean;
 }
 
 export interface Task {

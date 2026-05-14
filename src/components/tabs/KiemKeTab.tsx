@@ -10,6 +10,8 @@ import {
   Check,
   X,
   History,
+  Edit2,
+  Trash2,
   MoreVertical,
   ChevronDown
 } from 'lucide-react';
@@ -65,6 +67,27 @@ export default function KiemKeTab() {
   const [imageSize, setImageSize] = useState<'icon' | 'preview'>('icon');
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState<Partial<Equipment>>({
+    name: '',
+    model: '',
+    manufacturer: '',
+    country: '',
+    yearOfManufacture: '',
+    yearOfUse: '',
+    quantity: 1,
+    valuePercentage: 100,
+    status: 'Hoạt động tốt',
+    source: '',
+    note: '',
+    department: '',
+    departmentNote: '',
+    originalPrice: 0,
+    handoverDate: format(new Date(), 'yyyy-MM-dd'),
+    supplier: '',
+    bookNumber: '',
+    pageNumber: '',
+    images: []
+  });
   const [showCamera, setShowCamera] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -88,10 +111,54 @@ export default function KiemKeTab() {
       const ctx = canvas.getContext('2d');
       ctx?.drawImage(videoRef.current, 0, 0);
       const dataUrl = canvas.toDataURL('image/jpeg');
-      console.log("Captured photo:", dataUrl);
+      
+      setFormData(prev => ({
+        ...prev,
+        images: [...(prev.images || []), dataUrl]
+      }));
+
       const stream = videoRef.current.srcObject as MediaStream;
       stream.getTracks().forEach(track => track.stop());
       setShowCamera(false);
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingId) {
+        await updateDoc(doc(db, 'equipment', editingId), formData);
+      } else {
+        await addDoc(collection(db, 'equipment'), {
+          ...formData,
+          createdAt: new Date().toISOString()
+        });
+      }
+      setIsAdding(false);
+      setEditingId(null);
+      setFormData({
+        name: '',
+        model: '',
+        manufacturer: '',
+        country: '',
+        yearOfManufacture: '',
+        yearOfUse: '',
+        quantity: 1,
+        valuePercentage: 100,
+        status: 'Hoạt động tốt',
+        source: '',
+        note: '',
+        department: '',
+        departmentNote: '',
+        originalPrice: 0,
+        handoverDate: format(new Date(), 'yyyy-MM-dd'),
+        supplier: '',
+        bookNumber: '',
+        pageNumber: '',
+        images: []
+      });
+    } catch (error) {
+      handleFirestoreError(error, editingId ? OperationType.UPDATE : OperationType.CREATE, 'equipment');
     }
   };
 
@@ -158,10 +225,29 @@ export default function KiemKeTab() {
     }
   };
 
+  const handleDelete = async (id: string, name: string) => {
+    if (window.confirm(`Bạn có chắc chắn muốn xóa thiết bị "${name}"?`)) {
+      try {
+        await updateDoc(doc(db, 'equipment', id), { deleted: true }); // Soft delete or actual delete
+        // For this demo, let's just delete it
+        // await deleteDoc(doc(db, 'equipment', id));
+      } catch (error) {
+        handleFirestoreError(error, OperationType.DELETE, `equipment/${id}`);
+      }
+    }
+  };
+
+  const handleEdit = (item: Equipment) => {
+    setEditingId(item.id);
+    setFormData({ ...item });
+  };
+
   const filteredData = data.filter(item => 
-    item.name?.toLowerCase().includes(search.toLowerCase()) ||
-    item.model?.toLowerCase().includes(search.toLowerCase()) ||
-    item.id?.toLowerCase().includes(search.toLowerCase())
+    !item.deleted && (
+      item.name?.toLowerCase().includes(search.toLowerCase()) ||
+      item.model?.toLowerCase().includes(search.toLowerCase()) ||
+      item.id?.toLowerCase().includes(search.toLowerCase())
+    )
   );
 
   return (
@@ -317,9 +403,22 @@ export default function KiemKeTab() {
                   {visibleColumns.pageNumber && <td className="p-3 border-b border-gray-100 text-sm text-gray-500">{item.pageNumber}</td>}
                   
                   <td className="p-3 border-b border-gray-100 sticky right-0 bg-white group-hover:bg-blue-50/30 shadow-[-4px_0_4px_rgba(0,0,0,0.02)]">
-                    <button className="p-1 hover:bg-gray-100 rounded">
-                      <MoreVertical className="w-4 h-4 text-gray-400" />
-                    </button>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={() => handleEdit(item)}
+                        className="p-1 hover:bg-blue-100 text-blue-600 rounded transition-colors"
+                        title="Chỉnh sửa"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(item.id, item.name)}
+                        className="p-1 hover:bg-red-100 text-red-600 rounded transition-colors"
+                        title="Xóa"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </motion.tr>
               ))}
@@ -336,6 +435,189 @@ export default function KiemKeTab() {
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span> Hỏng: {data.filter(d => d.status === 'Hư hỏng').length}</span>
         </div>
       </div>
+
+      <AnimatePresence>
+        {(isAdding || editingId) && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+            >
+              <div className="p-6 border-b flex justify-between items-center bg-gray-50">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">{editingId ? 'Chỉnh sửa thiết bị' : 'Thêm thiết bị mới'}</h3>
+                  <p className="text-sm text-gray-500">Điền đầy đủ thông tin bên dưới</p>
+                </div>
+                <button 
+                  onClick={() => { setIsAdding(false); setEditingId(null); }}
+                  className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+                >
+                  <X className="w-6 h-6 text-gray-500" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Basic Info */}
+                  <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tên thiết bị *</label>
+                      <input 
+                        required
+                        type="text" 
+                        value={formData.name}
+                        onChange={e => setFormData({...formData, name: e.target.value})}
+                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        placeholder="VD: Máy giúp thở"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Model</label>
+                      <input 
+                        type="text" 
+                        value={formData.model}
+                        onChange={e => setFormData({...formData, model: e.target.value})}
+                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Hãng sản xuất</label>
+                      <input 
+                        type="text" 
+                        value={formData.manufacturer}
+                        onChange={e => setFormData({...formData, manufacturer: e.target.value})}
+                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nước sản xuất</label>
+                      <input 
+                        type="text" 
+                        value={formData.country}
+                        onChange={e => setFormData({...formData, country: e.target.value})}
+                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Năm sản xuất</label>
+                      <input 
+                        type="text" 
+                        value={formData.yearOfManufacture}
+                        onChange={e => setFormData({...formData, yearOfManufacture: e.target.value})}
+                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Images & Camera Section */}
+                  <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-3">Hình ảnh thiết bị</label>
+                    <div className="grid grid-cols-2 gap-2 mb-4">
+                      {formData.images?.map((img, i) => (
+                        <div key={i} className="aspect-square rounded-lg overflow-hidden border relative group">
+                          <img src={img} className="w-full h-full object-cover" alt="Preview" />
+                          <button 
+                            type="button"
+                            onClick={() => setFormData({...formData, images: formData.images?.filter((_, index) => index !== i)})}
+                            className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                      <button 
+                        type="button"
+                        onClick={startCamera}
+                        className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500 transition-all bg-white"
+                      >
+                        <Camera className="w-5 h-5 mb-1" />
+                        <span className="text-[10px] font-bold">CHỤP ẢNH</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Technical & Location */}
+                  <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-4 mt-2">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Đơn vị sử dụng</label>
+                      <select 
+                        value={formData.department}
+                        onChange={e => setFormData({...formData, department: e.target.value})}
+                        className="w-full p-2.5 bg-gray-100 border-none rounded-xl font-medium text-blue-800"
+                      >
+                        <option value="">Chọn khoa/phòng</option>
+                        {suggestions.department.map(d => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Số lượng</label>
+                      <input 
+                        type="number" 
+                        value={formData.quantity}
+                        onChange={e => setFormData({...formData, quantity: parseInt(e.target.value)})}
+                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tình trạng</label>
+                      <select 
+                        value={formData.status}
+                        onChange={e => setFormData({...formData, status: e.target.value})}
+                        className="w-full p-2.5 border border-gray-200 rounded-xl"
+                      >
+                        {suggestions.status.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nguyên giá</label>
+                      <input 
+                        type="number" 
+                        value={formData.originalPrice}
+                        onChange={e => setFormData({...formData, originalPrice: parseInt(e.target.value)})}
+                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Ghi chú</label>
+                      <textarea 
+                        value={formData.note}
+                        onChange={e => setFormData({...formData, note: e.target.value})}
+                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl h-20"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Ghi chú (Đơn vị)</label>
+                      <textarea 
+                        value={formData.departmentNote}
+                        onChange={e => setFormData({...formData, departmentNote: e.target.value})}
+                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl h-20"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-8 flex gap-3 justify-end sticky bottom-0 bg-white pt-4 border-t">
+                  <button 
+                    type="button"
+                    onClick={() => { setIsAdding(false); setEditingId(null); }}
+                    className="px-6 py-2.5 border border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition"
+                  >
+                    HỦY BỎ
+                  </button>
+                  <button 
+                    type="submit"
+                    className="px-10 py-2.5 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-100 hover:bg-blue-700 transition"
+                  >
+                    LƯU THÔNG TIN
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showCamera && (
