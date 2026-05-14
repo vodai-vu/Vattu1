@@ -104,44 +104,32 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
+    // Force a mock user for demo purposes as requested
+    const mockUser = {
+      uid: 'demo-user-id',
+      email: 'demo@benhviennhi.vn',
+      displayName: 'Quản trị viên (Demo)',
+      photoURL: 'https://ui-avatars.com/api/?name=Admin&background=0D8ABC&color=fff',
+    } as User;
+
+    const mockProfile: UserProfile = {
+      uid: 'demo-user-id',
+      email: 'demo@benhviennhi.vn',
+      displayName: 'Quản trị viên (Demo)',
+      role: 'admin',
+    };
+
+    setUser(mockUser);
+    setProfile(mockProfile);
+    setLoading(false);
+
+    // Keep original auth listener commented for future real integration if needed
+    /*
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      try {
-        setUser(user);
-        if (user) {
-          // Fetch or create profile
-          const profileRef = doc(db, 'personnel', user.uid);
-          const profileDoc = await getDoc(profileRef);
-          
-          if (profileDoc.exists()) {
-            setProfile(profileDoc.data() as UserProfile);
-          } else {
-            // Default to user role if not found
-            const newProfile: UserProfile = {
-              uid: user.uid,
-              email: user.email || '',
-              displayName: user.displayName || 'Người dùng mới',
-              role: 'user',
-            };
-            
-            // Try to persist the new profile
-            try {
-              await setDoc(profileRef, newProfile);
-            } catch (err) {
-              console.error('Error creating profile doc:', err);
-              // We still set it in state so the app works Session-only if persistence fails
-            }
-            setProfile(newProfile);
-          }
-        } else {
-          setProfile(null);
-        }
-      } catch (error) {
-        console.error('Auth state change error:', error);
-      } finally {
-        setLoading(false);
-      }
+      // ... existing code
     });
     return unsubscribe;
+    */
   }, []);
 
   const login = async () => {
@@ -167,7 +155,10 @@ export default function App() {
   };
 
   const logout = async () => {
-    await signOut(auth);
+    setUser(null);
+    setProfile(null);
+    // Optionally reload to reset everything
+    window.location.reload();
   };
 
   if (loading) {
