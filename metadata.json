@@ -1,0 +1,6 @@
+{
+  "name": "Quản lý Trang thiết bị Y tế - BV Nhi",
+  "description": "Hệ thống quản lý toàn diện vật tư, thiết bị y tế, bảo trì, sửa chữa và lịch trực cho Phòng Vật Tư - Thiết Bị Y Tế Bệnh viện Nhi.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": []
+}

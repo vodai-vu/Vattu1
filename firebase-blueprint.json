@@ -1,0 +1,167 @@
+{
+  "entities": {
+    "Equipment": {
+      "title": "Equipment",
+      "description": "Medical equipment inventory data",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "model": { "type": "string" },
+        "manufacturer": { "type": "string" },
+        "country": { "type": "string" },
+        "yearOfManufacture": { "type": "string" },
+        "yearOfUse": { "type": "string" },
+        "quantity": { "type": "number" },
+        "valuePercentage": { "type": "number" },
+        "status": { "type": "string" },
+        "source": { "type": "string" },
+        "note": { "type": "string" },
+        "department": { "type": "string" },
+        "departmentNote": { "type": "string" },
+        "originalPrice": { "type": "number" },
+        "totalValue": { "type": "number" },
+        "handoverDate": { "type": "string" },
+        "supplier": { "type": "string" },
+        "repairHistory": { "type": "string" },
+        "bookNumber": { "type": "string" },
+        "pageNumber": { "type": "string" }
+      }
+    },
+    "FanType": {
+      "title": "Fan Type",
+      "description": "Types of fans",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "specs": { "type": "string" }
+      }
+    },
+    "FanManagement": {
+      "title": "Fan Management",
+      "description": "Inventory of fans in departments",
+      "type": "object",
+      "properties": {
+        "department": { "type": "string" },
+        "fanTypeName": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unitPrice": { "type": "number" },
+        "totalValue": { "type": "number" },
+        "status": { "type": "string" },
+        "location": { "type": "string" },
+        "note": { "type": "string" }
+      }
+    },
+    "AirConditionerType": {
+      "title": "Air Conditioner Type",
+      "description": "Types of air conditioners",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "specs": { "type": "string" }
+      }
+    },
+    "AirConditionerManagement": {
+      "title": "Air Conditioner Management",
+      "description": "Inventory of air conditioners in departments",
+      "type": "object",
+      "properties": {
+        "department": { "type": "string" },
+        "acTypeName": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unitPrice": { "type": "number" },
+        "totalValue": { "type": "number" },
+        "status": { "type": "string" },
+        "location": { "type": "string" },
+        "note": { "type": "string" }
+      }
+    },
+    "Generator": {
+      "title": "Generator",
+      "description": "Generator data",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "specs": { "type": "string" },
+        "location": { "type": "string" },
+        "powerSupplyTo": { "type": "string" },
+        "calculations": { "type": "string" }
+      }
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Workflow/Progress tasks",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "color": { "type": "string" },
+        "completed": { "type": "boolean" }
+      }
+    },
+    "Department": {
+      "title": "Department",
+      "description": "Hospital departments",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "location": { "type": "string" },
+        "phone": { "type": "string" }
+      }
+    },
+    "Personnel": {
+      "title": "Personnel",
+      "description": "Staff members",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "jobTitle": { "type": "string" },
+        "note": { "type": "string" },
+        "username": { "type": "string" },
+        "status": { "type": "string" },
+        "role": { "type": "string" },
+        "image": { "type": "string" },
+        "department": { "type": "string" }
+      }
+    },
+    "DutySchedule": {
+      "title": "Duty Schedule",
+      "description": "Staff duty rosters",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "group": { "type": "string" },
+        "turn": { "type": "string" },
+        "isHoliday": { "type": "boolean" }
+      }
+    }
+  },
+  "firestore": {
+    "equipment": { "schema": "Equipment", "description": "Kiểm kê thiết bị" },
+    "fanTypes": { "schema": "FanType", "description": "Loại quạt" },
+    "fanManagement": { "schema": "FanManagement", "description": "Quản lý quạt" },
+    "acTypes": { "schema": "AirConditionerType", "description": "Loại điều hoà" },
+    "acManagement": { "schema": "AirConditionerManagement", "description": "Quản lý điều hoà" },
+    "generators": { "schema": "Generator", "description": "Máy phát" },
+    "tasks": { "schema": "Task", "description": "Tiến độ công việc" },
+    "departments": { "schema": "Department", "description": "Danh sách khoa phòng" },
+    "personnel": { "schema": "Personnel", "description": "Danh sách nhân sự" },
+    "dutySchedules": { "schema": "DutySchedule", "description": "Lịch trực" },
+    "settings": { "schema": "object", "description": "Global settings and configs" },
+    "userPreferences": { "schema": "object", "description": "User specific settings" }
+  }
+}
