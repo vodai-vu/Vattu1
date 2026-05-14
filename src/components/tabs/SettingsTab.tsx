@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ClipboardList, 
   Warehouse, 
@@ -12,7 +12,8 @@ import {
   XCircle,
   ToggleLeft,
   ToggleRight,
-  ShieldAlert
+  ShieldAlert,
+  X
 } from 'lucide-react';
 import { 
   collection, 
@@ -20,10 +21,12 @@ import {
   doc, 
   setDoc, 
   updateDoc, 
+  addDoc,
+  deleteDoc,
   query, 
   where 
 } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { db, handleFirestoreError, OperationType } from '../../lib/firebase';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -31,16 +34,37 @@ type SubMenu = 'kiem-ke' | 'kho-vat-tu' | 'lien-lac' | 'thiet-bi';
 
 export default function SettingsTab() {
   const [activeMenu, setActiveMenu] = useState<SubMenu>('kiem-ke');
-  const [globalColumns, setGlobalColumns] = useState<{ [key: string]: boolean }>({});
+  const [locations, setLocations] = useState<{id: string, name: string}[]>([]);
+  const [newLocName, setNewLocName] = useState('');
   
-  // Example collections for settings
-  const [locations, setLocations] = useState<{id: string, name: string}[]>([
-    { id: '1', name: 'Khu 11 tầng' },
-    { id: '2', name: 'Khu 15 tầng' },
-    { id: '3', name: 'Khu D (hành chính)' },
-  ]);
-
   const [conditions, setConditions] = useState<string[]>(['Hư hỏng', 'Không sửa được', 'Dự phòng', 'Hoạt động tốt']);
+  const [newCondition, setNewCondition] = useState('');
+
+  useEffect(() => {
+    const unsubLocs = onSnapshot(collection(db, 'locations'), (snap) => {
+      setLocations(snap.docs.map(d => ({ id: d.id, name: d.data().name })));
+    });
+    return () => unsubLocs();
+  }, []);
+
+  const handleAddLocation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newLocName.trim()) return;
+    try {
+      await addDoc(collection(db, 'locations'), { name: newLocName });
+      setNewLocName('');
+    } catch (err) {
+      handleFirestoreError(err, OperationType.CREATE, 'locations');
+    }
+  };
+
+  const handleDeleteLocation = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'locations', id));
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, `locations/${id}`);
+    }
+  };
 
   const MENU_ITEMS = [
     { id: 'kiem-ke', label: 'Kiểm kê', icon: ClipboardList },
@@ -51,7 +75,6 @@ export default function SettingsTab() {
 
   return (
     <div className="flex h-full bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      {/* Sidebar (250px) */}
       <div className="w-[280px] border-r border-gray-100 flex flex-col p-6 bg-gray-50/50 shrink-0">
         <h3 className="text-lg font-black text-gray-800 mb-8 flex items-center gap-2">
            <Settings className="w-6 h-6 text-gray-400" /> Cấu hình hệ thống
@@ -84,7 +107,6 @@ export default function SettingsTab() {
         </div>
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-auto p-8 custom-scrollbar">
          {activeMenu === 'kiem-ke' && (
            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
@@ -99,7 +121,7 @@ export default function SettingsTab() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                 {['Tên thiết bị', 'Hình ảnh', 'Model', 'Công ty SX', 'Nước SX', 'Năm SX', 'Năm SD', 'Số lượng', 'Tình trạng', 'Nguyên giá', 'Thành tiền'].map(col => (
+                 {['Tên thiết bị', 'Hình ảnh', 'Model', 'Công ty SX', 'Nước SX', 'Năm SX', 'Năm SD', 'Số lượng', 'Tình trạng', 'Nguyên giá'].map(col => (
                    <div key={col} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
                       <span className="font-bold text-gray-700">{col}</span>
                       <button className="text-blue-600">
@@ -107,30 +129,6 @@ export default function SettingsTab() {
                       </button>
                    </div>
                  ))}
-              </div>
-
-              <div className="mt-12">
-                 <h4 className="text-lg font-black text-gray-900 mb-4">Lịch sử thay đổi tùy chọn của User</h4>
-                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <table className="w-full text-left">
-                       <thead className="bg-gray-50">
-                          <tr>
-                             <th className="p-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Nhân viên</th>
-                             <th className="p-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Thời gian cập nhật</th>
-                             <th className="p-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Trạng thái</th>
-                          </tr>
-                       </thead>
-                       <tbody className="divide-y divide-gray-100">
-                          {[1,2,3].map(i => (
-                            <tr key={i}>
-                               <td className="p-4 text-sm font-bold text-gray-800">Nguyễn Văn A</td>
-                               <td className="p-4 text-sm text-gray-500">14/05/2024 10:30</td>
-                               <td className="p-4"><span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-bold">Đã đồng bộ</span></td>
-                            </tr>
-                          ))}
-                       </tbody>
-                    </table>
-                 </div>
               </div>
            </motion.div>
          )}
@@ -181,10 +179,20 @@ export default function SettingsTab() {
            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
               <div className="flex items-center justify-between mb-4">
                  <h4 className="text-lg font-black text-gray-900">Quản lý Vị trí / Khu vực</h4>
-                 <button className="px-4 py-2 bg-blue-50 text-blue-600 font-bold rounded-xl hover:bg-blue-100 transition flex items-center gap-2">
-                    <Plus className="w-4 h-4" /> Thêm khu vực
-                 </button>
               </div>
+
+              <form onSubmit={handleAddLocation} className="max-w-2xl flex gap-2">
+                 <input 
+                   type="text" 
+                   value={newLocName}
+                   onChange={e => setNewLocName(e.target.value)}
+                   placeholder="Nhập tên khu vực mới (VD: Khu 15 tầng)..." 
+                   className="flex-1 px-4 py-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 font-medium"
+                 />
+                 <button type="submit" className="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition flex items-center gap-2">
+                    <Plus className="w-4 h-4" /> Thêm
+                 </button>
+              </form>
 
               <div className="max-w-2xl space-y-3">
                  {locations.map(loc => (
@@ -193,7 +201,12 @@ export default function SettingsTab() {
                           <div className="p-2 bg-blue-50 rounded-lg"><MapPin className="w-5 h-5 text-blue-600" /></div>
                           <span className="font-bold text-gray-800">{loc.name}</span>
                        </div>
-                       <button className="opacity-0 group-hover:opacity-100 p-2 text-red-400 hover:bg-red-50 rounded-lg transition-all"><Trash2 className="w-4 h-4" /></button>
+                       <button 
+                        onClick={() => handleDeleteLocation(loc.id)}
+                        className="opacity-0 group-hover:opacity-100 p-2 text-red-400 hover:bg-red-50 rounded-lg transition-all"
+                       >
+                         <Trash2 className="w-4 h-4" />
+                       </button>
                     </div>
                  ))}
               </div>
@@ -208,13 +221,24 @@ export default function SettingsTab() {
                      {conditions.map((cond, idx) => (
                         <div key={idx} className="flex items-center justify-between bg-white px-4 py-3 rounded-xl shadow-sm">
                            <span className="text-sm font-medium text-gray-700">{cond}</span>
-                           <button className="text-gray-400 hover:text-red-500"><XCircle className="w-4 h-4" /></button>
+                           <button onClick={() => setConditions(conditions.filter((_, i) => i !== idx))} className="text-gray-400 hover:text-red-500"><XCircle className="w-4 h-4" /></button>
                         </div>
                      ))}
                   </div>
                   <div className="flex gap-2">
-                     <input type="text" placeholder="Thêm trạng thái mới..." className="flex-1 px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
-                     <button className="px-4 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700">Thêm</button>
+                     <input 
+                      type="text" 
+                      value={newCondition}
+                      onChange={e => setNewCondition(e.target.value)}
+                      placeholder="Thêm trạng thái mới..." 
+                      className="flex-1 px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white" 
+                     />
+                     <button 
+                      onClick={() => { if(newCondition) { setConditions([...conditions, newCondition]); setNewCondition(''); } }}
+                      className="px-4 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700"
+                     >
+                        Thêm
+                     </button>
                   </div>
                </div>
             </motion.div>

@@ -134,3 +134,38 @@ export interface DutySchedule {
   isHoliday?: boolean;
   holidayType?: 'normal' | 'tet';
 }
+
+export interface InspectionRecord {
+  id: string;
+  equipmentName: string;
+  model: string;
+  serialNo: string;
+  inspectionDate: string;
+  nextInspectionDate: string;
+  result: string;
+  certificateNo: string;
+  deleted?: boolean;
+}
+
+export interface LiquidationRecord {
+  id: string;
+  equipmentName: string;
+  model: string;
+  department: string;
+  liquidationDate: string;
+  reason: string;
+  decisionNo: string;
+  deleted?: boolean;
+}
+
+export interface PCCCEquipment {
+  id: string;
+  name: string;
+  type: string;
+  location: string;
+  quantity: number;
+  status: string;
+  lastCheckDate: string;
+  nextCheckDate: string;
+  deleted?: boolean;
+}
