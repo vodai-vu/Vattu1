@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { 
   Camera, 
   Image as ImageIcon, 
@@ -25,6 +25,7 @@ import {
   setDoc,
   getDoc
 } from 'firebase/firestore';
+import { format } from 'date-fns';
 import { db, auth, handleFirestoreError, OperationType } from '../../lib/firebase';
 import { cn, formatCurrency } from '../../lib/utils';
 import { Equipment } from '../../types';
@@ -184,15 +185,7 @@ export default function KiemKeTab() {
 
     // Fetch user preferences
     const fetchPrefs = async () => {
-      if (auth.currentUser) {
-        const prefDoc = await getDoc(doc(db, 'userPreferences', auth.currentUser.uid));
-        if (prefDoc.exists()) {
-          const prefs = prefDoc.data();
-          if (prefs.visibleColumns) {
-            setVisibleColumns(prefs.visibleColumns);
-          }
-        }
-      }
+      // In demo mode, we use a constant key or skip
     };
     fetchPrefs();
 

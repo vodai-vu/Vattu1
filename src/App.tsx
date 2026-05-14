@@ -224,7 +224,7 @@ export default function App() {
 
   return (
     <AuthContext.Provider value={{ user, profile, loading, login, logout }}>
-      <div className="flex h-screen bg-gray-50 overflow-hidden min-w-[1400px]">
+      <div className="flex h-screen bg-gray-50 overflow-hidden">
         {/* Sidebar */}
         <motion.aside
           initial={false}
