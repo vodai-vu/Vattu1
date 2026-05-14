@@ -30,10 +30,19 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    function isValidPersonnel(data) {
+      return data.uid is string && data.uid.size() <= 128 &&
+             data.email is string && data.email.size() <= 256 &&
+             (data.displayName == null || (data.displayName is string && data.displayName.size() <= 256)) &&
+             data.role in ['user', 'admin', 'manager', 'technician'];
+    }
+
     // Personnel collection
     match /personnel/{userId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow create: if isOwner(userId) && isValidPersonnel(request.resource.data) && request.resource.data.role == 'user';
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     // Tasks collection

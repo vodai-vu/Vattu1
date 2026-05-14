@@ -98,41 +98,71 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('kiem-ke');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      if (user) {
-        // Fetch or create profile
-        const profileDoc = await getDoc(doc(db, 'personnel', user.uid));
-        if (profileDoc.exists()) {
-          setProfile(profileDoc.data() as UserProfile);
+      try {
+        setUser(user);
+        if (user) {
+          // Fetch or create profile
+          const profileRef = doc(db, 'personnel', user.uid);
+          const profileDoc = await getDoc(profileRef);
+          
+          if (profileDoc.exists()) {
+            setProfile(profileDoc.data() as UserProfile);
+          } else {
+            // Default to user role if not found
+            const newProfile: UserProfile = {
+              uid: user.uid,
+              email: user.email || '',
+              displayName: user.displayName || 'Người dùng mới',
+              role: 'user',
+            };
+            
+            // Try to persist the new profile
+            try {
+              await setDoc(profileRef, newProfile);
+            } catch (err) {
+              console.error('Error creating profile doc:', err);
+              // We still set it in state so the app works Session-only if persistence fails
+            }
+            setProfile(newProfile);
+          }
         } else {
-          // Default to user role if not found
-          const newProfile: UserProfile = {
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName,
-            role: 'user',
-          };
-          setProfile(newProfile);
+          setProfile(null);
         }
-      } else {
-        setProfile(null);
+      } catch (error) {
+        console.error('Auth state change error:', error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
     return unsubscribe;
   }, []);
 
   const login = async () => {
+    setLoginError(null);
+    setIsAuthenticating(true);
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
     } catch (error) {
       console.error('Login failed', error);
+      if (error instanceof Error) {
+        if (error.message.includes('popup-closed-by-user')) {
+          setLoginError('Cửa sổ đăng nhập đã bị đóng.');
+        } else if (error.message.includes('cancelled-by-user')) {
+          setLoginError('Đăng nhập bị hủy.');
+        } else {
+          setLoginError('Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại.');
+        }
+      }
+    } finally {
+      setIsAuthenticating(false);
     }
   };
 
@@ -167,11 +197,34 @@ export default function App() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Phòng Vật Tư - Thiết Bị Y Tế</h1>
           <p className="text-gray-500 mb-8">Bệnh Viện Nhi - Hệ thống quản lý tập trung</p>
+          
+          {loginError && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100"
+            >
+              {loginError}
+            </motion.div>
+          )}
+
           <button
             onClick={login}
-            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-all duration-200 flex items-center justify-center gap-2"
+            disabled={isAuthenticating}
+            className={cn(
+              "w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-all duration-200 flex items-center justify-center gap-2",
+              isAuthenticating && "opacity-70 cursor-not-allowed"
+            )}
           >
-            Đăng nhập với Google
+            {isAuthenticating ? (
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                className="h-5 w-5 rounded-full border-2 border-white border-t-transparent"
+              />
+            ) : (
+              "Đăng nhập với Google"
+            )}
           </button>
         </motion.div>
       </div>
