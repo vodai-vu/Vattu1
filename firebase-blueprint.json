@@ -148,6 +148,19 @@
         "turn": { "type": "string" },
         "isHoliday": { "type": "boolean" }
       }
+    },
+    "Contact": {
+      "title": "Contact",
+      "description": "Contact information for departments, leadership, and staff",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "position": { "type": "string" },
+        "phone": { "type": "string" },
+        "department": { "type": "string" },
+        "category": { "type": "string", "enum": ["khoa_phong", "lanh_dao", "nhan_su"] },
+        "deleted": { "type": "boolean" }
+      }
     }
   },
   "firestore": {
@@ -161,6 +174,7 @@
     "departments": { "schema": "Department", "description": "Danh sách khoa phòng" },
     "personnel": { "schema": "Personnel", "description": "Danh sách nhân sự" },
     "dutySchedules": { "schema": "DutySchedule", "description": "Lịch trực" },
+    "contacts": { "schema": "Contact", "description": "Danh bạ liên lạc" },
     "settings": { "schema": "object", "description": "Global settings and configs" },
     "userPreferences": { "schema": "object", "description": "User specific settings" }
   }

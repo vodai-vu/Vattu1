@@ -72,5 +72,11 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if false; // Only system or initial setup
     }
+
+    // Contacts collection
+    match /contacts/{contactId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn(); // Allow writes for now
+    }
   }
 }

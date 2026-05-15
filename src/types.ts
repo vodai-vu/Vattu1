@@ -169,3 +169,13 @@ export interface PCCCEquipment {
   nextCheckDate: string;
   deleted?: boolean;
 }
+
+export interface Contact {
+  id: string;
+  name: string;
+  position: string;
+  phone: string;
+  department: string;
+  category: 'khoa_phong' | 'lanh_dao' | 'nhan_su';
+  deleted?: boolean;
+}
